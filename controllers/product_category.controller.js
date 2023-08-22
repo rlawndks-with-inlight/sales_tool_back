@@ -2,26 +2,22 @@
 import pool from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { deleteQuery, getSelectQuery, insertQuery, updateQuery } from "../utils.js/query-util.js";
-import { checkDns, checkLevel, response } from "../utils.js/util.js";
+import { checkDns, checkLevel, isItemBrandIdSameDnsId, lowLevelException, response, settingFiles } from "../utils.js/util.js";
 import 'dotenv/config';
 
-const table_name = 'users';
+const table_name = 'product_categories';
 
-const userCtrl = {
+const productCategoryCtrl = {
     list: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const { } = req.query;
-
             let columns = [
                 `${table_name}.*`,
-                'brands.name AS brand_name'
             ]
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
-            sql += `LEFT JOIN brands ON ${table_name}.brand_id=brands.id `;
-
             let data = await getSelectQuery(sql, columns, req.query);
 
             return response(req, res, 100, "success", data);
@@ -29,7 +25,7 @@ const userCtrl = {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
     get: async (req, res, next) => {
@@ -48,7 +44,7 @@ const userCtrl = {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
     create: async (req, res, next) => {
@@ -57,11 +53,15 @@ const userCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                brand_id, user_name, user_pw, name, nickname, parent_id, level, phone_num, profile_img, note
+                name, note
             } = req.body;
+            let files = settingFiles(req.files);
             let obj = {
-                brand_id, user_name, user_pw, name, nickname, parent_id, level, phone_num, profile_img, note
+                brand_id: decode_dns?.id,
+                name, note
             };
+            obj = { ...obj, ...files };
+
             let result = await insertQuery(`${table_name}`, obj);
 
             return response(req, res, 100, "success", {})
@@ -69,7 +69,7 @@ const userCtrl = {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
     update: async (req, res, next) => {
@@ -78,18 +78,21 @@ const userCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                brand_id, user_name, user_pw, name, nickname, parent_id, level, phone_num, profile_img, note, id
+                name, note, id
             } = req.body;
+            let files = settingFiles(req.files);
             let obj = {
-                brand_id, user_name, user_pw, name, nickname, parent_id, level, phone_num, profile_img, note
+                brand_id: decode_dns?.id,
+                name, note
             };
+            obj = { ...obj, ...files };
             let result = await updateQuery(`${table_name}`, obj, id);
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
     remove: async (req, res, next) => {
@@ -98,17 +101,21 @@ const userCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const { id } = req.params;
+            if (!isItemBrandIdSameDnsId(decode_dns, { brand_id: id })) {
+                return lowLevelException(req, res);
+            }
             let result = await deleteQuery(`${table_name}`, {
                 id
             })
+
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
 };
 
-export default userCtrl;
+export default productCategoryCtrl;

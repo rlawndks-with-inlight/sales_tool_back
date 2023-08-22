@@ -9,7 +9,7 @@ const authCtrl = {
     signIn: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
-            const decode_user = checkLevel(req.cookies.token, 0); 
+            const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             let { user_name, user_pw } = req.body;
 
@@ -51,13 +51,13 @@ const authCtrl = {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
     signUp: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
-            const decode_user = checkLevel(req.cookies.token, 0); 
+            const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             let {
                 user_name,
@@ -99,13 +99,13 @@ const authCtrl = {
             console.log(JSON.stringify(err))
             return response(req, res, -200, err?.message || "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
     signOut: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
-            const decode_user = checkLevel(req.cookies.token, 0); 
+            const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             res.clearCookie('token');
             return response(req, res, 100, "success", {})
@@ -113,20 +113,21 @@ const authCtrl = {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
     checkSign: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
-            const decode_user = checkLevel(req.cookies.token, 0);
+            const decode_user = checkLevel(req.cookies.token, is_manager ? 1 : 0);
             const decode_dns = checkDns(req.cookies.dns);
+
             return response(req, res, 100, "success", decode_user)
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
 };

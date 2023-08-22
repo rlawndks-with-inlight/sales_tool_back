@@ -80,32 +80,41 @@ export const checkDns = (token) => { //dns 정보 뿌려주기
         return false
     }
 }
-const logRequestResponse = async (req, res, decode) => {//로그찍기
+const logRequestResponse = async (req, res, decode_user, decode_dns) => {//로그찍기
     let requestIp;
     try {
         requestIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '0.0.0.0'
     } catch (err) {
         requestIp = '0.0.0.0'
     }
-
     let request = {
         url: req.originalUrl,
         headers: req.headers,
         query: req.query,
         params: req.params,
         body: req.body,
+        method: req.method,
         file: req.file || req.files || null
+    }
+    if(request.url.includes('/logs')){
+        return true;
     }
     request = JSON.stringify(request)
     let user_id = 0;
-    if (decode) {
-        user_id = decode?.id;
+    if (decode_user && !isNaN(parseInt(decode_user?.id))) {
+        user_id = decode_user?.id;
     } else {
         user_id = -1;
     }
+    let brand_id = -1;
+    if (decode_dns) {
+        brand_id = decode_dns?.id;
+    } else {
+        brand_id = -1;
+    }
     let result = await pool.query(
-        "INSERT INTO logs (request, response_result, response_message, request_ip, user_id) VALUES (?, ?, ?, ?, ?)",
-        [request, res?.result, res?.message, requestIp, user_id]
+        "INSERT INTO logs (request, response_data, response_result, response_message, request_ip, user_id, brand_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [request, JSON.stringify(res?.data), res?.result, res?.message, requestIp, user_id, brand_id]
     )
 }
 export const response = async (req, res, code, message, data) => { //응답 포맷
@@ -115,12 +124,16 @@ export const response = async (req, res, code, message, data) => { //응답 포�
         'data': data,
     }
     const decode_user = checkLevel(req.cookies.token, 0)
-    let save_log = await logRequestResponse(req, resDict, decode_user);
+    const decode_dns = checkLevel(req.cookies.dns, 0)
+    let save_log = await logRequestResponse(req, resDict, decode_user, decode_dns);
 
     res.send(resDict);
 }
 export const lowLevelException = (req, res) => {
     return response(req, res, -150, "권한이 없습니다.", false);
+}
+export const isItemBrandIdSameDnsId = (decode_dns, item) =>{
+    return decode_dns?.id == item?.brand_id
 }
 export const settingFiles = (obj) => {
     let keys = Object.keys(obj);
@@ -130,9 +143,24 @@ export const settingFiles = (obj) => {
         if (!file) {
             continue;
         }
-        file.destination = 'files/' + file.destination.split('files/')[1];
-        result[`${keys[i].split('_file')[0]}_img`] = (process.env.NODE_ENV == 'development' ? process.env.BACK_URL_TEST : process.env.BACK_URL) + '/' + file.destination + file.filename;
+        let is_multiple = false;
+
+        if (obj[keys[i]].length > 1) {
+            is_multiple = true;
+        }
+        if (is_multiple) {
+            let files = obj[keys[i]];
+            result[`${keys[i].split('_file')[0]}_imgs`] = files.map(item=>{
+                return (process.env.NODE_ENV == 'development' ? process.env.BACK_URL_TEST : process.env.BACK_URL) + '/' + item.destination + item.filename;
+            }).join(',')
+            files = `[${files}]`;
+
+        } else {
+            file.destination = 'files/' + file.destination.split('files/')[1];
+            result[`${keys[i].split('_file')[0]}_img`] = (process.env.NODE_ENV == 'development' ? process.env.BACK_URL_TEST : process.env.BACK_URL) + '/' + file.destination + file.filename;
+        }
     }
+    console.log(result)
     return result;
 }
 export const imageFieldList = [
@@ -140,6 +168,8 @@ export const imageFieldList = [
     'dark_logo_file',
     'favicon_file',
     'og_file',
+    'upload_file',
+    'category_file',
 
 ].map(field => {
     return {

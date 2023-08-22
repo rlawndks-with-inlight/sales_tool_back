@@ -6,6 +6,8 @@ import { deleteQuery, getSelectQuery, insertQuery, updateQuery } from "../utils.
 import { checkDns, checkLevel, createHashedPassword, lowLevelException, response, settingFiles } from "../utils.js/util.js";
 import 'dotenv/config';
 
+const table_name = 'brands';
+
 const brandCtrl = {
     list: async (req, res, next) => {
         try {
@@ -14,10 +16,12 @@ const brandCtrl = {
             const decode_dns = checkDns(req.cookies.dns);
             const { } = req.query;
             let columns = [
-                'brands.*',
+                `${table_name}.*`,
             ]
-            let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM brands `;
-
+            let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
+            if(decode_dns?.is_main_dns != 1){
+                sql += `WHERE id=${decode_dns?.id}`;
+            }
             let data = await getSelectQuery(sql, columns, req.query);
 
             return response(req, res, 100, "success", data);
@@ -34,7 +38,7 @@ const brandCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const { id } = req.params;
-            let data = await pool.query(`SELECT * FROM brands WHERE id=${id}`)
+            let data = await pool.query(`SELECT * FROM ${table_name} WHERE id=${id}`)
             data = data[0][0];
             data['theme_css'] = JSON.parse(data?.theme_css ?? '{}');
             data['setting_obj'] = JSON.parse(data?.setting_obj ?? '{}');
@@ -52,8 +56,6 @@ const brandCtrl = {
         try {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 50);
-            console.log(decode_user)
-            console.log(is_manager)
             if (!decode_user || !is_manager) {
                 return lowLevelException(req, res);
             }
@@ -63,7 +65,6 @@ const brandCtrl = {
                 user_name, user_pw
             } = req.body;
             let files = settingFiles(req.files);
-            console.log(files);
             let obj = {
                 name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css, setting_obj
             };
@@ -73,7 +74,7 @@ const brandCtrl = {
             await conn.beginTransaction();
 
 
-            let result = await insertQuery('brands', obj, conn);
+            let result = await insertQuery(`${table_name}`, obj, conn);
             let user_obj = {
                 user_name: user_name,
                 user_pw: user_pw,
@@ -107,8 +108,6 @@ const brandCtrl = {
                 name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css = {}, setting_obj = {},
             } = req.body;
             const { id } = req.params;
-            console.log(decode_user)
-            console.log(decode_dns)
             if(!is_manager || (decode_user?.level < 50 && decode_user?.brand_id != id) || decode_user?.level < 40){
                 return lowLevelException(req, res);
             }
@@ -120,9 +119,9 @@ const brandCtrl = {
             obj['theme_css'] = JSON.stringify(obj.theme_css);
             obj['setting_obj'] = JSON.stringify(obj.setting_obj);
             obj = { ...obj, ...files };
-            console.log(obj);
-            let result = await updateQuery('brands', obj, id);
-
+            
+            let result = await updateQuery(`${table_name}`, obj, id);
+            console.log(result)
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
@@ -137,7 +136,7 @@ const brandCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const { id } = req.params;
-            let result = await deleteQuery('brands', {
+            let result = await deleteQuery(`${table_name}`, {
                 id
             })
             return response(req, res, 100, "success", {})
