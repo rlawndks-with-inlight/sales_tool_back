@@ -8,6 +8,7 @@ router
     .route('/')
     .get(productCtrl.list)
     .post(productCtrl.create);
+
 router
     .route('/:id')
     .get(productCtrl.get)

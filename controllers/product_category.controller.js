@@ -18,6 +18,7 @@ const productCategoryCtrl = {
                 `${table_name}.*`,
             ]
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
+            sql += ` WHERE brand_id=${decode_dns?.id} `;
             let data = await getSelectQuery(sql, columns, req.query);
 
             return response(req, res, 100, "success", data);
@@ -53,12 +54,11 @@ const productCategoryCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                name, note
+                brand_id, name, note
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
-                brand_id: decode_dns?.id,
-                name, note
+                brand_id, name, note
             };
             obj = { ...obj, ...files };
 
@@ -78,12 +78,11 @@ const productCategoryCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                name, note, id
+                brand_id, name, note, id
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
-                brand_id: decode_dns?.id,
-                name, note
+                brand_id, name, note
             };
             obj = { ...obj, ...files };
             let result = await updateQuery(`${table_name}`, obj, id);

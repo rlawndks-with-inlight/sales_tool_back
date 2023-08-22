@@ -170,6 +170,7 @@ export const imageFieldList = [
     'og_file',
     'upload_file',
     'category_file',
+    'product_file',
 
 ].map(field => {
     return {

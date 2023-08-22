@@ -57,8 +57,10 @@ export const updateQuery = async (table, obj, id, pool_) => {
     let result = await conn.query(`UPDATE ${table} SET ${question_list.join()} WHERE id=${id}`, values);
     return result;
 }
-export const selectQuery = () => {
-
+export const selectQuerySimple = async (table, id, pool_) => {
+    let conn = pool_ || pool
+    let result = await conn.query(`SELECT * FROM ${table} WHERE id=${id}`);
+    return result;
 }
 export const getTableNameBySelectQuery = (sql) => {// select query 가지고 불러올 메인 table명 불러오기 select * from user as asd
     let sql_split_list = sql.split(' FROM ')[1].split(' ');
@@ -85,7 +87,7 @@ export const getSelectQuery = async (sql_, columns, query, pool_) => {
         sql += ` AND ${table}.created_at <= '${e_dt} 23:59:59' `;
     }
     let content_sql = sql.replaceAll(process.env.SELECT_COLUMN_SECRET, columns.join());
-    content_sql += ` ORDER BY ${order} ${is_asc ? 'ASC' : 'DESC'} `;
+    content_sql += ` ORDER BY ${table}.${order} ${is_asc ? 'ASC' : 'DESC'} `;
     content_sql += ` LIMIT ${(page - 1) * page_size}, ${page_size} `;
     let total_sql = sql.replaceAll(process.env.SELECT_COLUMN_SECRET, 'COUNT(*) as total');
 

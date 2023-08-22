@@ -13,7 +13,7 @@ const userCtrl = {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
-            const { } = req.query;
+            const { is_sales_man } = req.query;
 
             let columns = [
                 `${table_name}.*`,
@@ -21,6 +21,8 @@ const userCtrl = {
             ]
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
             sql += `LEFT JOIN brands ON ${table_name}.brand_id=brands.id `;
+
+            if(is_sales_man) sql += ` WHERE ${table_name}.level IN (10, 40) `; // sales-man 불러올때
 
             let data = await getSelectQuery(sql, columns, req.query);
 
@@ -70,6 +72,20 @@ const userCtrl = {
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
             
+        }
+    },
+    sales_man_create: async (req, res, next) => {
+        try {
+            let is_manager = await checkIsManagerUrl(req);
+            const decode_user = checkLevel(req.cookies.token, 0);
+            const decode_dns = checkDns(req.cookies.dns);
+
+            return response(req, res, 100, "success", {})
+        } catch (err) {
+            console.log(err)
+            return response(req, res, -200, "서버 에러 발생", false)
+        } finally {
+
         }
     },
     update: async (req, res, next) => {

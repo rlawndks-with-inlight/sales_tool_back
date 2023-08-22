@@ -88,7 +88,7 @@ const brandCtrl = {
             let user_salt = pw_data.salt;
             user_obj['user_salt'] = user_salt;
             let user_sign_up = await insertQuery('users', user_obj);
-
+            
             await conn.commit();
             return response(req, res, 100, "success", {})
         } catch (err) {

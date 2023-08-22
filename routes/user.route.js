@@ -9,6 +9,9 @@ router
     .get(userCtrl.list)
     .post(userCtrl.create);
 router
+    .route('/sales-man')
+    .post(userCtrl.sales_man_create);
+router
     .route('/:id')
     .get(userCtrl.get)
     .put(userCtrl.update)
