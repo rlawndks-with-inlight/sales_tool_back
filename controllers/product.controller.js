@@ -21,7 +21,8 @@ const productCtrl = {
             ]
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
             sql += ` LEFT JOIN product_categories ON ${table_name}.category_id=product_categories.id `;
-
+            sql += ` WHERE ${table_name}.brand_id=${decode_dns?.id} `;
+            
             let data = await getSelectQuery(sql, columns, req.query);
 
             return response(req, res, 100, "success", data);
