@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import util from 'util';
-import pool from "../config/db.js";
+import { pool } from "../config/db.js";
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
@@ -21,13 +21,12 @@ export const createHashedPassword = async (password, salt_) => {
     return { hashedPassword, salt };
 };
 export const makeUserToken = (obj) => {
-    let token = jwt.sign(obj,
+    let token = jwt.sign({ ...obj },
         process.env.JWT_SECRET,
         {
             expiresIn: '180m',
             issuer: 'fori',
         });
-
     return token
 }
 export const checkLevel = (token, level) => { //유저 정보 뿌려주기
@@ -96,7 +95,7 @@ const logRequestResponse = async (req, res, decode_user, decode_dns) => {//로�
         method: req.method,
         file: req.file || req.files || null
     }
-    if(request.url.includes('/logs')){
+    if (request.url.includes('/logs')) {
         return true;
     }
     request = JSON.stringify(request)
@@ -132,7 +131,7 @@ export const response = async (req, res, code, message, data) => { //응답 포�
 export const lowLevelException = (req, res) => {
     return response(req, res, -150, "권한이 없습니다.", false);
 }
-export const isItemBrandIdSameDnsId = (decode_dns, item) =>{
+export const isItemBrandIdSameDnsId = (decode_dns, item) => {
     return decode_dns?.id == item?.brand_id
 }
 export const settingFiles = (obj) => {
@@ -150,7 +149,7 @@ export const settingFiles = (obj) => {
         }
         if (is_multiple) {
             let files = obj[keys[i]];
-            result[`${keys[i].split('_file')[0]}_imgs`] = files.map(item=>{
+            result[`${keys[i].split('_file')[0]}_imgs`] = files.map(item => {
                 return (process.env.NODE_ENV == 'development' ? process.env.BACK_URL_TEST : process.env.BACK_URL) + '/' + item.destination + item.filename;
             }).join(',')
             files = `[${files}]`;

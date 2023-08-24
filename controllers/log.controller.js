@@ -1,6 +1,6 @@
 'use strict';
 import axios from "axios";
-import pool from "../config/db.js";
+import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { deleteQuery, getSelectQuery, insertQuery, updateQuery } from "../utils.js/query-util.js";
 import { checkDns, checkLevel, createHashedPassword, isItemBrandIdSameDnsId, lowLevelException, response, settingFiles } from "../utils.js/util.js";
@@ -20,11 +20,14 @@ const logCtrl = {
             ]
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
             sql += ` LEFT JOIN users ON users.id=${table_name}.user_id `
-            if(decode_dns?.is_main_dns != 1){
+            if (decode_dns?.is_main_dns != 1) {
                 sql += `WHERE ${table_name}.brand_id=${decode_dns?.id}`
             }
-            let data = await getSelectQuery(sql, columns, req.query);
-            let result_code_sql = sql;
+            let sql_list = [
+                { table: 'success', sql: (sql + `${sql.includes('WHERE') ? 'AND' : 'WHERE'} response_result > 0 `).replaceAll(process.env.SELECT_COLUMN_SECRET, 'COUNT(*) AS success') },
+                { table: 'fail', sql: (sql + `${sql.includes('WHERE') ? 'AND' : 'WHERE'} response_result < 0 `).replaceAll(process.env.SELECT_COLUMN_SECRET, 'COUNT(*) AS fail') },
+            ];
+            let data = await getSelectQuery(sql, columns, req.query, sql_list);
             return response(req, res, 100, "success", data);
         } catch (err) {
             console.log(err)
@@ -40,7 +43,7 @@ const logCtrl = {
             const decode_dns = checkDns(req.cookies.dns);
             const { id } = req.params;
             let data = await pool.query(`SELECT * FROM ${table_name} WHERE id=${id}`)
-            data = data[0][0];
+            data = data?.result[0];
             if (!isItemBrandIdSameDnsId(decode_dns, data)) {
                 return lowLevelException(req, res);
             }

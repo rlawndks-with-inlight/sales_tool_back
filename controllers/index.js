@@ -9,6 +9,7 @@ import productCategoryCtrl from './product_category.controller.js';
 import uploadCtrl from './upload.controller.js';
 import logCtrl from './log.controller.js';
 import shopCtrl from './shop.controller.js';
+import contractCtrl from './contract.contrller.js';
 
 export {
     userCtrl,
@@ -20,4 +21,5 @@ export {
     logCtrl,
     productCategoryCtrl,
     shopCtrl,
+    contractCtrl,
 };

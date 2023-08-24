@@ -1,5 +1,5 @@
 'use strict';
-import pool from "../config/db.js";
+import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { deleteQuery, getSelectQuery, insertQuery, selectQuerySimple, updateQuery } from "../utils.js/query-util.js";
 import { checkDns, checkLevel, isItemBrandIdSameDnsId, response, settingFiles } from "../utils.js/util.js";
@@ -22,7 +22,7 @@ const productCtrl = {
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
             sql += ` LEFT JOIN product_categories ON ${table_name}.category_id=product_categories.id `;
             sql += ` WHERE ${table_name}.brand_id=${decode_dns?.id} `;
-            
+            console.log(req.query)
             let data = await getSelectQuery(sql, columns, req.query);
 
             return response(req, res, 100, "success", data);
@@ -40,7 +40,7 @@ const productCtrl = {
             const decode_dns = checkDns(req.cookies.dns);
             const { id } = req.params;
             let data = await pool.query(`SELECT * FROM ${table_name} WHERE id=${id}`)
-            data = data[0][0];
+            data = data?.result[0];
             if (!isItemBrandIdSameDnsId(decode_dns, data)) {
                 return lowLevelException(req, res);
             }
@@ -65,10 +65,10 @@ const productCtrl = {
                 brand_id, name, note, price, category_id
             };
             let is_exist_category = await selectQuerySimple('product_categories', category_id);
-            if(!(is_exist_category[0].length > 0)){
+            if(!(is_exist_category?.result.length > 0)){
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
             }
-            is_exist_category = is_exist_category[0][0];
+            is_exist_category = is_exist_category?.result[0];
 
             if(is_exist_category?.brand_id != decode_dns?.id){
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
@@ -98,10 +98,10 @@ const productCtrl = {
                 brand_id, name, note, price, category_id
             };
             let is_exist_category = await selectQuerySimple('product_categories', category_id);
-            if(!(is_exist_category[0].length > 0)){
+            if(!(is_exist_category?.result.length > 0)){
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
             }
-            is_exist_category = is_exist_category[0][0];
+            is_exist_category = is_exist_category?.result[0];
             
             if(is_exist_category?.brand_id != decode_dns?.id){
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})

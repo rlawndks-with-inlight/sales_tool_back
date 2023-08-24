@@ -1,5 +1,5 @@
 'use strict';
-import pool from "../config/db.js";
+import { pool } from "../config/db.js";
 import { checkIsManagerUrl, returnMoment } from "../utils.js/function.js";
 import { insertQuery, updateQuery } from "../utils.js/query-util.js";
 import { createHashedPassword, checkLevel, makeUserToken, response, checkDns, lowLevelException } from "../utils.js/util.js";
@@ -14,7 +14,7 @@ const authCtrl = {
             let { user_name, user_pw } = req.body;
 
             let user = await pool.query(`SELECT * FROM users WHERE user_name=? AND ( brand_id=${decode_dns?.id} OR level >=50 ) LIMIT 1`, user_name);
-            user = user[0][0];
+            user = user?.result[0];
             if (!user) {
                 return response(req, res, -100, "가입되지 않은 회원입니다.", {})
             }

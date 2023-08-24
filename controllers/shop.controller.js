@@ -1,5 +1,5 @@
 'use strict';
-import pool from "../config/db.js";
+import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { checkLevel, makeUserToken, response } from "../utils.js/util.js";
 import 'dotenv/config';

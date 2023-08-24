@@ -1,6 +1,6 @@
 'use strict';
 import axios from "axios";
-import pool from "../config/db.js";
+import db, { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { deleteQuery, getSelectQuery, insertQuery, updateQuery } from "../utils.js/query-util.js";
 import { checkDns, checkLevel, createHashedPassword, lowLevelException, response, settingFiles } from "../utils.js/util.js";
@@ -39,7 +39,7 @@ const brandCtrl = {
             const decode_dns = checkDns(req.cookies.dns);
             const { id } = req.params;
             let data = await pool.query(`SELECT * FROM ${table_name} WHERE id=${id}`)
-            data = data[0][0];
+            data = data?.result[0];
             data['theme_css'] = JSON.parse(data?.theme_css ?? '{}');
             data['setting_obj'] = JSON.parse(data?.setting_obj ?? '{}');
 
@@ -52,7 +52,6 @@ const brandCtrl = {
         }
     },
     create: async (req, res, next) => { // 50레벨이상 관리자 url만
-        let conn = await pool.getConnection();
         try {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 50);
@@ -71,17 +70,16 @@ const brandCtrl = {
             obj['theme_css'] = JSON.stringify(obj.theme_css);
             obj['setting_obj'] = JSON.stringify(obj.setting_obj);
             obj = { ...obj, ...files };
-            await conn.beginTransaction();
+            await db.beginTransaction();
 
-
-            let result = await insertQuery(`${table_name}`, obj, conn);
+            let result = await insertQuery(`${table_name}`, obj);
             let user_obj = {
                 user_name: user_name,
                 user_pw: user_pw,
                 name: name,
                 nickname: name,
                 level: 40,
-                brand_id: result[0]?.insertId
+                brand_id: result?.result?.insertId
             }
             let pw_data = await createHashedPassword(user_obj.user_pw);
             user_obj.user_pw = pw_data.hashedPassword;
@@ -89,15 +87,13 @@ const brandCtrl = {
             user_obj['user_salt'] = user_salt;
             let user_sign_up = await insertQuery('users', user_obj);
             
-            await conn.commit();
+            await db.commit();
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
-            await conn.rollback();
+            await db.rollback();
             return response(req, res, -200, "서버 에러 발생", false)
-        } finally {
-            conn.release()
-        }
+        } 
     },
     update: async (req, res, next) => { // 40레벨일시 자기 브랜드 수정, 50레벨일시 모든 브랜드 수정가능
         try {
@@ -121,7 +117,6 @@ const brandCtrl = {
             obj = { ...obj, ...files };
             
             let result = await updateQuery(`${table_name}`, obj, id);
-            console.log(result)
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)

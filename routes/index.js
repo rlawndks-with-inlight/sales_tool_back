@@ -8,6 +8,7 @@ import productCategoryRoutes from './product_category.route.js';
 import uploadRoutes from './upload.route.js';
 import logRoutes from './log.route.js';
 import shopRoutes from './shop.route.js';
+import contractRoutes from './contract.route.js';
 
 const router = express.Router(); // eslint-disable-line new-cap
 
@@ -19,6 +20,7 @@ router.use('/brands', brandRoutes);
 router.use('/products', productRoutes);
 router.use('/product-categories', productCategoryRoutes);
 router.use('/logs', logRoutes);
+router.use('/contracts', contractRoutes);
 
 //auth
 router.use('/auth', authRoutes);

@@ -1,5 +1,5 @@
 'use strict';
-import pool from "../config/db.js";
+import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { checkLevel, makeUserToken, response } from "../utils.js/util.js";
 import 'dotenv/config';
@@ -9,7 +9,7 @@ const domainCtrl = {
         try {
             const { dns } = req.query;
             let brand = await pool.query(`SELECT * FROM brands WHERE dns='${dns}'`);
-            brand = brand[0][0];
+            brand = brand?.result[0];
             brand['theme_css'] = JSON.parse(brand?.theme_css ?? '{}');
             brand['setting_obj'] = JSON.parse(brand?.setting_obj ?? '{}');
             const token = await makeUserToken(brand);
