@@ -13,7 +13,7 @@ const productCtrl = {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
-            const { } = req.query;
+            const { category_id } = req.query;
 
             let columns = [
                 `${table_name}.*`,
@@ -22,6 +22,7 @@ const productCtrl = {
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
             sql += ` LEFT JOIN product_categories ON ${table_name}.category_id=product_categories.id `;
             sql += ` WHERE ${table_name}.brand_id=${decode_dns?.id} `;
+            if(category_id) sql += ` AND ${table_name}.category_id=${category_id} `;
             console.log(req.query)
             let data = await getSelectQuery(sql, columns, req.query);
 

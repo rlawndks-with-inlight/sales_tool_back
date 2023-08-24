@@ -14,7 +14,6 @@ const userCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const { is_sales_man } = req.query;
-
             let columns = [
                 `${table_name}.*`,
                 'brands.name AS brand_name'
