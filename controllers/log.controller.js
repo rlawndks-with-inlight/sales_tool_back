@@ -24,8 +24,8 @@ const logCtrl = {
                 sql += `WHERE ${table_name}.brand_id=${decode_dns?.id}`
             }
             let sql_list = [
-                { table: 'success', sql: (sql + `${sql.includes('WHERE') ? 'AND' : 'WHERE'} response_result > 0 `).replaceAll(process.env.SELECT_COLUMN_SECRET, 'COUNT(*) AS success') },
-                { table: 'fail', sql: (sql + `${sql.includes('WHERE') ? 'AND' : 'WHERE'} response_result < 0 `).replaceAll(process.env.SELECT_COLUMN_SECRET, 'COUNT(*) AS fail') },
+                { table: 'success', sql: (sql + ` ${sql.includes('WHERE') ? 'AND' : 'WHERE'} response_result > 0 `).replaceAll(process.env.SELECT_COLUMN_SECRET, 'COUNT(*) AS success') },
+                { table: 'fail', sql: (sql + ` ${sql.includes('WHERE') ? 'AND' : 'WHERE'} response_result < 0 `).replaceAll(process.env.SELECT_COLUMN_SECRET, 'COUNT(*) AS fail') },
             ];
             let data = await getSelectQuery(sql, columns, req.query, sql_list);
             return response(req, res, 100, "success", data);
