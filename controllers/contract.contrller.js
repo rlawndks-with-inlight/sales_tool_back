@@ -14,7 +14,7 @@ const contractCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const { } = req.query;
-
+            
             let columns = [
                 `${table_name}.*`,
             ]

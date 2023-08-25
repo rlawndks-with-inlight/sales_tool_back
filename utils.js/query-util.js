@@ -107,7 +107,6 @@ export const getSelectQuery = async (sql_, columns, query, add_sql_list = []) =>
     for (var i = 0; i < result.length; i++) {
         obj[result[i].table] = result[i]?.content?.result
     }
-
     return settingSelectQueryObj(obj);
 }
 const settingSelectQueryWhere = (sql_, query, table) => {

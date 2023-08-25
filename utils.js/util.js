@@ -3,6 +3,7 @@ import util from 'util';
 import { pool } from "../config/db.js";
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
+import { readSync } from 'fs';
 
 const randomBytesPromise = util.promisify(crypto.randomBytes);
 const pbkdf2Promise = util.promisify(crypto.pbkdf2);
@@ -170,9 +171,83 @@ export const imageFieldList = [
     'upload_file',
     'category_file',
     'product_file',
+    'profile_file',
 
 ].map(field => {
     return {
         name: field
     }
 })
+export const makeObjByList = (key, list = []) => {
+    let obj = {};
+    for (var i = 0; i < list.length; i++) {
+        if (!obj[list[i][key]]) {
+            obj[list[i][key]] = [];
+        }
+        obj[list[i][key]].push(list[i]);
+    }
+    return obj;
+}
+export const makeChildren = (data_, parent_obj) => {
+    let data = data_;
+    data.children = parent_obj[data?.id] ?? [];
+    if (data.children.length > 0) {
+        for (var i = 0; i < data.children.length; i++) {
+            data.children[i] = makeChildren(data.children[i], parent_obj);
+        }
+    } else {
+        delete data.children
+    }
+    return data;
+}
+
+export const makeUserTree = (user_list_ = [], decode_user) => {// 유저트리만들기
+    let user_list = user_list_;
+    let user_parent_obj = makeObjByList('parent_id', user_list);
+    let result = [...user_parent_obj[decode_user?.parent_id ?? '-1']];
+    for (var i = 0; i < result.length; i++) {
+        result[i] = makeChildren(result[i], user_parent_obj);
+    }
+    return result;
+}
+export const isParentCheckByUsers = (children, parent, user_list, user_obj_) => {//두 유저가 상하위 관계인지
+    let user_obj = user_obj_ || makeObjByList('id', user_list);
+    let is_parent = false;
+    let user = children;
+    let parent_id = user?.parent_id;
+    while (true) {
+        if (parent_id == -1) {
+            break;
+        }
+        if (parent_id == parent?.id) {
+            is_parent = true;
+            break;
+        }
+        user = user_obj[parent_id];
+        parent_id = user?.parent_id;
+    }
+    return is_parent;
+}
+
+export const makeUserChildrenList = (user_list_ = [], decode_user) => {// 자기 하위 유저들 자기포함 리스트로 불러오기
+    let user_list = user_list_;
+    let user_parent_obj = makeObjByList('parent_id', user_list);
+    let user_obj = makeObjByList('id', user_list);
+    let result = [];
+    let start_idx = result.length;
+    result = [...result, ...user_obj[decode_user?.id]];
+    let result_length = result.length;
+    while(true){
+        for (var i = start_idx; i < result_length; i++) {
+            if(user_parent_obj[result[i]?.id]){
+                result = [...result, ...user_parent_obj[result[i]?.id]];
+            }
+        }
+        start_idx = result_length;
+        result_length = result.length;
+        if(start_idx == result_length){
+            break;
+        }
+    }
+    return result;
+}

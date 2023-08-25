@@ -10,6 +10,7 @@ import uploadCtrl from './upload.controller.js';
 import logCtrl from './log.controller.js';
 import shopCtrl from './shop.controller.js';
 import contractCtrl from './contract.contrller.js';
+import salesManCtrl from './sales_man.controller.js';
 
 export {
     userCtrl,
@@ -22,4 +23,5 @@ export {
     productCategoryCtrl,
     shopCtrl,
     contractCtrl,
+    salesManCtrl,
 };

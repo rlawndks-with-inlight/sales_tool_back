@@ -2,33 +2,64 @@
 import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { deleteQuery, getSelectQuery, insertQuery, selectQuerySimple, updateQuery } from "../utils.js/query-util.js";
-import { checkDns, checkLevel, createHashedPassword, isItemBrandIdSameDnsId, lowLevelException, makeObjByList, makeUserTree, response, settingFiles } from "../utils.js/util.js";
+import { checkDns, checkLevel, createHashedPassword, isItemBrandIdSameDnsId, lowLevelException, makeObjByList, makeUserChildrenList, makeUserTree, response, settingFiles } from "../utils.js/util.js";
 import 'dotenv/config';
 
 const table_name = 'users';
 
-const userCtrl = {
+const salesManCtrl = {
     list: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
-            const { is_sales_man } = req.query;
-            
+            const { page = 1, page_size = 100000, is_asc = false, order = 'id', s_dt, e_dt } = req.query;
+
             let columns = [
                 `${table_name}.*`,
                 'brands.name AS brand_name',
                 'parent_users.user_name AS parent_user_name',
             ]
-            let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
+            let sql = `SELECT ${columns.join()} FROM ${table_name} `;
             sql += `LEFT JOIN brands ON ${table_name}.brand_id=brands.id `;
             sql += `LEFT JOIN users AS parent_users ON ${table_name}.parent_id=parent_users.id `;
             sql += ` WHERE ${table_name}.brand_id=${decode_dns?.id} `
-            sql += ` AND ${table_name}.level=0 `;
+            sql += ` AND ${table_name}.level IN (10, 40) `; // sales-man 불러올때
 
-            let data = await getSelectQuery(sql, columns, req.query);
+            let user_list = await pool.query(sql);
+            user_list = makeUserChildrenList(user_list?.result, decode_user);
+            user_list = user_list.sort(function (a, b) {
+                return a[order] - b[order];
+            });
+            if (s_dt) {
+                user_list = user_list.filter((item) => item?.created_at >= `${s_dt} 00:00:00`)
+            }
+            if (e_dt) {
+                user_list = user_list.filter((item) => item?.created_at <= `${e_dt} 23:59:59`)
+            }
+            let user_length = user_list.length;
+            return response(req, res, 100, "success", {
+                page,
+                page_size,
+                total: user_length,
+                content: user_list
+            });
+        } catch (err) {
+            console.log(err)
+            return response(req, res, -200, "서버 에러 발생", false)
+        } finally {
 
-            return response(req, res, 100, "success", data);
+        }
+    },
+    organizational_chart: async (req, res, next) => {
+        try {
+            let is_manager = await checkIsManagerUrl(req);
+            const decode_user = checkLevel(req.cookies.token, 0);
+            const decode_dns = checkDns(req.cookies.dns);
+
+            let user_list = await pool.query(`SELECT * FROM ${table_name} WHERE ${table_name}.brand_id=${decode_dns?.id} `);
+            let user_tree = makeUserTree(user_list?.result, decode_user);
+            return response(req, res, 100, "success", user_tree);
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
@@ -64,7 +95,7 @@ const userCtrl = {
                 brand_id, user_name, user_pw, name, nickname, parent_user_name, level, phone_num, profile_img, note,
             } = req.body;
             let is_exist_user = await pool.query(`SELECT * FROM ${table_name} WHERE user_name=? AND brand_id=${brand_id}`, [user_name]);
-            if(is_exist_user?.result.length > 0){
+            if (is_exist_user?.result.length > 0) {
                 return response(req, res, -100, "유저아이디가 이미 존재합니다.", false)
             }
             let parent_id = await pool.query(`SELECT * FROM ${table_name} WHERE user_name=? AND brand_id=${brand_id} `, [parent_user_name]);
@@ -93,21 +124,12 @@ const userCtrl = {
 
         }
     },
-    update: async (req, res, next) => {
+    create: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
-            const {
-                brand_id, user_name, name, nickname, level, phone_num, profile_img, note, id
-            } = req.body;
-            let files = settingFiles(req.files);
-            let obj = {
-                brand_id, user_name, name, nickname, level, phone_num, profile_img, note
-            };
-            obj = { ...obj, ...files };
-            console.log(obj)
-            let result = await updateQuery(`${table_name}`, obj, id);
+
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
@@ -116,38 +138,16 @@ const userCtrl = {
 
         }
     },
-    remove: async (req, res, next) => {
+    organizational_chart: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
-            const { id } = req.params;
-            let result = await deleteQuery(`${table_name}`, {
-                id
-            })
-            return response(req, res, 100, "success", {})
-        } catch (err) {
-            console.log(err)
-            return response(req, res, -200, "서버 에러 발생", false)
-        } finally {
 
-        }
-    },
-    changePassword: async (req, res, next) => {
-        try {
-            let is_manager = await checkIsManagerUrl(req);
-            const decode_user = checkLevel(req.cookies.token, 0);
-            const decode_dns = checkDns(req.cookies.dns);
-            const { id } = req.params
-            let { user_pw } = req.body;
-            let pw_data = await createHashedPassword(user_pw);
-            user_pw = pw_data.hashedPassword;
-            let user_salt = pw_data.salt;
-            let obj = {
-                user_pw, user_salt
-            }
-            let result = await updateQuery(`${table_name}`, obj, id);
-            return response(req, res, 100, "success", {})
+            let user_list = await pool.query(`SELECT * FROM ${table_name} WHERE ${table_name}.brand_id=${decode_dns?.id} `);
+            let user_tree = makeUserTree(user_list?.result, decode_user);
+            return response(req, res, 100, "success", user_tree);
+
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
@@ -156,4 +156,4 @@ const userCtrl = {
         }
     },
 }
-export default userCtrl;
+export default salesManCtrl;

@@ -7,14 +7,14 @@ const router = express.Router(); // eslint-disable-line new-cap
 router
     .route('/')
     .get(userCtrl.list)
-    .post(userCtrl.create);
-router
-    .route('/sales-man')
-    .post(userCtrl.sales_man_create);
+    .post(userCtrl.create)
 router
     .route('/:id')
     .get(userCtrl.get)
     .put(userCtrl.update)
     .delete(userCtrl.remove)
+router
+    .route('/change-pw/:id')
+    .put(userCtrl.changePassword)
 
 export default router;

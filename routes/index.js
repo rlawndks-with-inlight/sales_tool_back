@@ -9,6 +9,7 @@ import uploadRoutes from './upload.route.js';
 import logRoutes from './log.route.js';
 import shopRoutes from './shop.route.js';
 import contractRoutes from './contract.route.js';
+import salesManRoutes from './sales_man.controller.js';
 
 const router = express.Router(); // eslint-disable-line new-cap
 
@@ -28,6 +29,7 @@ router.use('/auth', authRoutes);
 //util
 router.use('/domain', domainRoutes);
 router.use('/upload', uploadRoutes);
+router.use('/sales-man', salesManRoutes);
 
 //user
 router.use('/shop', shopRoutes);
