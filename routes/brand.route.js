@@ -14,5 +14,9 @@ router
     .get(brandCtrl.get)
     .put(brandCtrl.update)
     .delete(brandCtrl.remove);
+router
+    .route('/designs/:id')
+    .get(brandCtrl.design.get)
+    .put(brandCtrl.design.update);
 
 export default router;

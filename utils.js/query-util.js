@@ -131,10 +131,21 @@ const settingSelectQueryObj = (obj_) => {
     }
     return obj;
 }
-const keywordSettingObj = (table) => {
-    if(table=='users'){
-        return {
-
-        }
+export const getMultipleQueryByWhen = async (sql_list) => {
+    let result_list = [];
+    for (var i = 0; i < sql_list.length; i++) {
+        result_list.push({
+            table: sql_list[i].table,
+            content: (await pool.query(sql_list[i].sql))
+        });
     }
+    for (var i = 0; i < result_list.length; i++) {
+        await result_list[i];
+    }
+    let result = (await when(result_list));
+    let data = {};
+    for (var i = 0; i < result.length; i++) {
+        data[result[i].table] = result[i]?.content?.result
+    }
+    return data;
 }

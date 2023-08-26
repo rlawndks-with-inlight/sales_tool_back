@@ -106,7 +106,6 @@ const userCtrl = {
                 brand_id, user_name, name, nickname, level, phone_num, profile_img, note
             };
             obj = { ...obj, ...files };
-            console.log(obj)
             let result = await updateQuery(`${table_name}`, obj, id);
             return response(req, res, 100, "success", {})
         } catch (err) {

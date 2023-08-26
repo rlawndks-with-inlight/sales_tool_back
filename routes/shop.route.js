@@ -6,7 +6,9 @@ const router = express.Router(); // eslint-disable-line new-cap
 
 router
     .route('/')
-    .get(shopCtrl.main)
-
+    .get(shopCtrl.setting)
+router
+    .route('/product/:id')
+    .get(shopCtrl.item)
 
 export default router;

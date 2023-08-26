@@ -4,6 +4,7 @@ import { pool } from "../config/db.js";
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import { readSync } from 'fs';
+import when from 'when';
 
 const randomBytesPromise = util.promisify(crypto.randomBytes);
 const pbkdf2Promise = util.promisify(crypto.pbkdf2);
@@ -172,6 +173,8 @@ export const imageFieldList = [
     'category_file',
     'product_file',
     'profile_file',
+    'banner_file',
+    'product_banner_file',
 
 ].map(field => {
     return {
@@ -237,15 +240,15 @@ export const makeUserChildrenList = (user_list_ = [], decode_user) => {// 자기
     let start_idx = result.length;
     result = [...result, ...user_obj[decode_user?.id]];
     let result_length = result.length;
-    while(true){
+    while (true) {
         for (var i = start_idx; i < result_length; i++) {
-            if(user_parent_obj[result[i]?.id]){
+            if (user_parent_obj[result[i]?.id]) {
                 result = [...result, ...user_parent_obj[result[i]?.id]];
             }
         }
         start_idx = result_length;
         result_length = result.length;
-        if(start_idx == result_length){
+        if (start_idx == result_length) {
             break;
         }
     }

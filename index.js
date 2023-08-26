@@ -27,7 +27,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use('/files', express.static(__dirname + '/files'));
 app.use('/api', routes);
-app.use('/api/manager',upload.fields(imageFieldList), routes);
+app.use('/api/manager', upload.fields(imageFieldList), routes);
 
 app.get('/', (req, res) => {
   console.log("back-end initialized")
@@ -60,5 +60,5 @@ if (process.env.NODE_ENV == 'development') {
     console.log("**-------------------------------------**");
     scheduleIndex();
   });
- 
+
 }

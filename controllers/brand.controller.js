@@ -19,7 +19,7 @@ const brandCtrl = {
                 `${table_name}.*`,
             ]
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
-            if(decode_dns?.is_main_dns != 1){
+            if (decode_dns?.is_main_dns != 1) {
                 sql += `WHERE id=${decode_dns?.id}`;
             }
             let data = await getSelectQuery(sql, columns, req.query);
@@ -86,14 +86,14 @@ const brandCtrl = {
             let user_salt = pw_data.salt;
             user_obj['user_salt'] = user_salt;
             let user_sign_up = await insertQuery('users', user_obj);
-            
+
             await db.commit();
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
             await db.rollback();
             return response(req, res, -200, "서버 에러 발생", false)
-        } 
+        }
     },
     update: async (req, res, next) => { // 40레벨일시 자기 브랜드 수정, 50레벨일시 모든 브랜드 수정가능
         try {
@@ -104,7 +104,7 @@ const brandCtrl = {
                 name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css = {}, setting_obj = {},
             } = req.body;
             const { id } = req.params;
-            if(!is_manager || (decode_user?.level < 50 && decode_user?.brand_id != id) || decode_user?.level < 40){
+            if (!is_manager || (decode_user?.level < 50 && decode_user?.brand_id != id) || decode_user?.level < 40) {
                 return lowLevelException(req, res);
             }
             let files = settingFiles(req.files);
@@ -115,7 +115,7 @@ const brandCtrl = {
             obj['theme_css'] = JSON.stringify(obj.theme_css);
             obj['setting_obj'] = JSON.stringify(obj.setting_obj);
             obj = { ...obj, ...files };
-            
+
             let result = await updateQuery(`${table_name}`, obj, id);
             return response(req, res, 100, "success", {})
         } catch (err) {
@@ -142,6 +142,43 @@ const brandCtrl = {
 
         }
     },
+    design: {
+        get: async (req, res, next) => {
+            try {
+                let is_manager = await checkIsManagerUrl(req);
+                const decode_user = checkLevel(req.cookies.token, 0);
+                const decode_dns = checkDns(req.cookies.dns);
+                const { id } = req.params;
+                console.log(id)
+                let files = settingFiles(req.files);
+
+                return response(req, res, 100, "success", {})
+            } catch (err) {
+                console.log(err)
+                return response(req, res, -200, "서버 에러 발생", false)
+            } finally {
+
+            }
+        },
+        update: async (req, res, next) => {
+            try {
+                let is_manager = await checkIsManagerUrl(req);
+                const decode_user = checkLevel(req.cookies.token, 0);
+                const decode_dns = checkDns(req.cookies.dns);
+                const { id } = req.params;
+                console.log(id)
+                let files = settingFiles(req.files);
+
+                return response(req, res, 100, "success", {})
+            } catch (err) {
+                console.log(err)
+                return response(req, res, -200, "서버 에러 발생", false)
+            } finally {
+
+            }
+        },
+
+    }
 };
 
 export default brandCtrl;

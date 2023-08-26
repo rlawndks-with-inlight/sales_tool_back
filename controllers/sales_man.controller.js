@@ -27,7 +27,10 @@ const salesManCtrl = {
             sql += ` AND ${table_name}.level IN (10, 40) `; // sales-man 불러올때
 
             let user_list = await pool.query(sql);
-            user_list = makeUserChildrenList(user_list?.result, decode_user);
+            user_list = user_list?.result
+            if(decode_user?.level<50){
+                user_list = makeUserChildrenList(user_list, decode_user);
+            }
             user_list = user_list.sort(function (a, b) {
                 return a[order] - b[order];
             });
