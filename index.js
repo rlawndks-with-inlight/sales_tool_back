@@ -14,6 +14,7 @@ import upload from "./config/multerConfig.js";
 import { imageFieldList } from "./utils.js/util.js";
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { uploadMultipleFiles } from "./utils.js/api-util.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,6 +27,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use('/files', express.static(__dirname + '/files'));
+//app.post('/api/upload/multiple', upload.array('post_file'), uploadMultipleFiles);
+
 app.use('/api', upload.fields(imageFieldList), routes);
 
 app.get('/', (req, res) => {

@@ -61,15 +61,16 @@ const brandCtrl = {
             }
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css = {}, setting_obj = {},
+                name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css = {}, setting_obj = {}, shop_obj=[],
                 user_name, user_pw
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
-                name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css, setting_obj
+                name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css, setting_obj, shop_obj
             };
             obj['theme_css'] = JSON.stringify(obj.theme_css);
             obj['setting_obj'] = JSON.stringify(obj.setting_obj);
+            obj['shop_obj'] = JSON.stringify(obj.shop_obj);
             obj = { ...obj, ...files };
             await db.beginTransaction();
 
@@ -102,19 +103,20 @@ const brandCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css = {}, setting_obj = {},
+                name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css = {}, setting_obj = {}, shop_obj=[],
             } = req.body;
             const { id } = req.params;
-            if (!is_manager || (decode_user?.level < 50 && decode_user?.brand_id != id) || decode_user?.level < 40) {
+            if ((decode_user?.level < 50 && decode_user?.brand_id != id) || decode_user?.level < 40) {
                 return lowLevelException(req, res);
             }
             let files = settingFiles(req.files);
 
             let obj = {
-                name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css, setting_obj
+                name, dns, og_description, company_name, business_num, pvcy_rep_name, ceo_name, addr, addr_detail, resident_num, phone_num, fax_num, note, theme_css, setting_obj, shop_obj
             };
             obj['theme_css'] = JSON.stringify(obj.theme_css);
             obj['setting_obj'] = JSON.stringify(obj.setting_obj);
+            obj['shop_obj'] = JSON.stringify(obj.shop_obj);
             obj = { ...obj, ...files };
 
             let result = await updateQuery(`${table_name}`, obj, id);

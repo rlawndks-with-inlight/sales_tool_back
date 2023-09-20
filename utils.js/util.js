@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import { readSync } from 'fs';
 import when from 'when';
+import _ from 'lodash';
 
 const randomBytesPromise = util.promisify(crypto.randomBytes);
 const pbkdf2Promise = util.promisify(crypto.pbkdf2);
@@ -161,7 +162,6 @@ export const settingFiles = (obj) => {
             result[`${keys[i].split('_file')[0]}_img`] = (process.env.NODE_ENV == 'development' ? process.env.BACK_URL_TEST : process.env.BACK_URL) + '/' + file.destination + file.filename;
         }
     }
-    console.log(result)
     return result;
 }
 export const imageFieldList = [
@@ -254,4 +254,26 @@ export const makeUserChildrenList = (user_list_ = [], decode_user) => {// 자기
         }
     }
     return result;
+}
+
+export const homeItemsSetting = (column_, products) => {
+    let column = column_;
+
+    let item_list = column?.list ?? [];
+    item_list = item_list.map(item_id => {
+        return { ...item_id, ..._.find(products, { id: parseInt(item_id) }) }
+    })
+    column.list = item_list;
+    return column;
+}
+export const homeItemsWithCategoriesSetting = (column_, products) => {
+    let column = column_;
+    for (var i = 0; i < column?.list.length; i++) {
+        let item_list = column?.list[i]?.list;
+        item_list = item_list.map(item_id => {
+            return { ...item_id, ..._.find(products, { id: parseInt(item_id) }) }
+        })
+        column.list[i].list = item_list;
+    }
+    return column;
 }

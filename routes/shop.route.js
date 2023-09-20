@@ -8,6 +8,9 @@ router
     .route('/')
     .get(shopCtrl.setting)
 router
+    .route('/main')
+    .get(shopCtrl.main)
+router
     .route('/product/:id')
     .get(shopCtrl.item)
 

@@ -2,7 +2,7 @@
 import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { getMultipleQueryByWhen, getSelectQuery } from "../utils.js/query-util.js";
-import { checkDns, checkLevel, isItemBrandIdSameDnsId, lowLevelException, makeUserToken, response } from "../utils.js/util.js";
+import { checkDns, checkLevel, homeItemsSetting, homeItemsWithCategoriesSetting, isItemBrandIdSameDnsId, lowLevelException, makeUserToken, response } from "../utils.js/util.js";
 import 'dotenv/config';
 import when from 'when';
 
@@ -48,7 +48,50 @@ const shopCtrl = {
         try {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
-            return response(req, res, 100, "success", {});
+            let dns_data = await pool.query(`SELECT shop_obj FROM brands WHERE id=${decode_dns?.id}`);
+            dns_data = dns_data?.result[0];
+            dns_data['shop_obj'] = JSON.parse(dns_data?.shop_obj ?? '{}');
+            let content_list = dns_data['shop_obj'];
+            let sql_list = [];
+            // sql_list.push({
+            //     table:'post',
+            //     sql: `SELECT * FROM posts `,
+            // })
+            sql_list.push({
+                table: 'product',
+                sql: `SELECT * FROM products WHERE brand_id=${decode_dns?.id} `,
+            })
+            let sql_data = await getMultipleQueryByWhen(sql_list);
+            let posts = sql_data['post'] ?? [];
+            let products = sql_data['product'] ?? [];
+            for (var i = 0; i < content_list.length; i++) {
+                if (content_list[i]?.type == 'items' && products.length > 0) {
+                    content_list[i] = homeItemsSetting(content_list[i], products);
+                }
+                if (content_list[i]?.type == 'items-with-categories' && products.length > 0) {
+                    content_list[i] = homeItemsWithCategoriesSetting(content_list[i], products);
+                }
+                if (content_list[i]?.type == 'post') {
+                    content_list[i] = {
+                        ...content_list[i],
+                        posts: post_obj,
+                        categories: themePostCategoryList,
+                    };
+                }
+                if (content_list[i]?.type == 'item-reviews') {
+                    let review_list = [...test_product_reviews];
+                    for (var j = 0; j < review_list.length; j++) {
+                        review_list[j].product = _.find(products, { id: review_list[j]?.product_id });
+                    }
+                    content_list[i] = {
+                        ...content_list[i],
+                        title: '상품후기',
+                        sub_title: 'REVIEW',
+                        list: [...review_list],
+                    }
+                }
+            }
+            return response(req, res, 100, "success", content_list);
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
