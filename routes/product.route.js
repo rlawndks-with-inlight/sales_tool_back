@@ -8,7 +8,9 @@ router
     .route('/')
     .get(productCtrl.list)
     .post(productCtrl.create);
-
+router
+    .route('/budget')
+    .post(productCtrl.budget);
 router
     .route('/:id')
     .get(productCtrl.get)

@@ -22,7 +22,7 @@ const productCtrl = {
             let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
             sql += ` LEFT JOIN product_categories ON ${table_name}.category_id=product_categories.id `;
             sql += ` WHERE ${table_name}.brand_id=${decode_dns?.id} `;
-            if(category_id) sql += ` AND ${table_name}.category_id=${category_id} `;
+            if (category_id) sql += ` AND ${table_name}.category_id=${category_id} `;
             console.log(req.query)
             let data = await getSelectQuery(sql, columns, req.query);
 
@@ -42,6 +42,10 @@ const productCtrl = {
             const { id } = req.params;
             let data = await pool.query(`SELECT * FROM ${table_name} WHERE id=${id}`)
             data = data?.result[0];
+            data['product_sub_imgs'] = JSON.parse(data?.product_sub_imgs ?? "[]");
+            let budget_product = await pool.query(`SELECT * FROM budget_products WHERE user_id=${decode_dns?.id??0} AND product_id=${id}`);
+            budget_product = budget_product?.result[0];
+            data['budget'] = budget_product;
             if (!isItemBrandIdSameDnsId(decode_dns, data)) {
                 return lowLevelException(req, res);
             }
@@ -59,19 +63,21 @@ const productCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                brand_id, name, note, price, category_id
+                brand_id, name, note, price, category_id, product_sub_imgs = []
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
-                brand_id, name, note, price, category_id
+                brand_id, name, note, price, category_id, product_sub_imgs
             };
+            obj['product_sub_imgs'] = JSON.stringify(obj['product_sub_imgs']);
+
             let is_exist_category = await selectQuerySimple('product_categories', category_id);
-            if(!(is_exist_category?.result.length > 0)){
+            if (!(is_exist_category?.result.length > 0)) {
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
             }
             is_exist_category = is_exist_category?.result[0];
 
-            if(is_exist_category?.brand_id != decode_dns?.id){
+            if (is_exist_category?.brand_id != decode_dns?.id) {
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
             }
             obj = { ...obj, ...files };
@@ -92,19 +98,20 @@ const productCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                brand_id, name, note, price, category_id, id
+                brand_id, name, note, price, category_id, id, product_sub_imgs = []
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
-                brand_id, name, note, price, category_id
+                brand_id, name, note, price, category_id, product_sub_imgs
             };
+            obj['product_sub_imgs'] = JSON.stringify(obj['product_sub_imgs']);
             let is_exist_category = await selectQuerySimple('product_categories', category_id);
-            if(!(is_exist_category?.result.length > 0)){
+            if (!(is_exist_category?.result.length > 0)) {
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
             }
             is_exist_category = is_exist_category?.result[0];
-            
-            if(is_exist_category?.brand_id != decode_dns?.id){
+
+            if (is_exist_category?.brand_id != decode_dns?.id) {
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
             }
             obj = { ...obj, ...files };
@@ -128,6 +135,23 @@ const productCtrl = {
             let result = await deleteQuery(`${table_name}`, {
                 id
             })
+            return response(req, res, 100, "success", {})
+        } catch (err) {
+            console.log(err)
+            return response(req, res, -200, "서버 에러 발생", false)
+        } finally {
+
+        }
+    },
+    budget: async (req, res, next) => {
+        try {
+            const decode_user = checkLevel(req.cookies.token, 0);
+            const decode_dns = checkDns(req.cookies.dns);
+            const {
+                product_id,
+                budget_price
+            } = req.body;
+
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
