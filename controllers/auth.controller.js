@@ -21,6 +21,12 @@ const authCtrl = {
             if (is_manager && user.level <= 0) {
                 return response(req, res, -100, "가입되지 않은 회원입니다.", {})
             }
+            if(user?.status == 1){
+                return response(req, res, -100, "승인 대기중입니다.", {})
+            }
+            if(user?.status == 2){
+                return response(req, res, -100, "로그인 불가 회원입니다.", {})
+            }
             user_pw = (await createHashedPassword(user_pw, user.user_salt)).hashedPassword;
             if (user_pw != user.user_pw) {
                 return response(req, res, -100, "가입되지 않은 회원입니다.", {})

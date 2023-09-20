@@ -16,5 +16,8 @@ router
 router
     .route('/change-pw/:id')
     .put(userCtrl.changePassword)
+router
+    .route('/change-status/:id')
+    .put(userCtrl.changeStatus)
 
 export default router;

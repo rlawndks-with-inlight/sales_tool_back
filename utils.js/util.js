@@ -175,6 +175,7 @@ export const imageFieldList = [
     'profile_file',
     'banner_file',
     'product_banner_file',
+    'post_file',
 
 ].map(field => {
     return {

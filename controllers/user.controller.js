@@ -61,14 +61,16 @@ const userCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             let {
-                brand_id, user_name, user_pw, name, nickname, parent_user_name, level, phone_num, profile_img, note,
+                brand_id, user_name, user_pw, name, nickname, parent_user_name, level=0, phone_num, profile_img, note,
             } = req.body;
+            console.log(req.body)
             let is_exist_user = await pool.query(`SELECT * FROM ${table_name} WHERE user_name=? AND brand_id=${brand_id}`, [user_name]);
             if(is_exist_user?.result.length > 0){
                 return response(req, res, -100, "유저아이디가 이미 존재합니다.", false)
             }
-            let parent_id = await pool.query(`SELECT * FROM ${table_name} WHERE user_name=? AND brand_id=${brand_id} `, [parent_user_name]);
+            let parent_id = undefined; 
             if (level >= 10) {//영업자 일때
+                parent_id = await pool.query(`SELECT * FROM ${table_name} WHERE user_name=? AND brand_id=${brand_id} `, [parent_user_name]);
                 if (parent_id?.result.length > 0) {
                     parent_id = parent_id?.result[0]?.id;
                 } else {
@@ -83,6 +85,7 @@ const userCtrl = {
                 brand_id, user_name, user_pw, user_salt, name, nickname, parent_id, level, phone_num, profile_img, note
             };
             obj = { ...obj, ...files };
+            console.log(obj)
             let result = await insertQuery(`${table_name}`, obj);
 
             return response(req, res, 100, "success", {})
@@ -139,11 +142,42 @@ const userCtrl = {
             const decode_dns = checkDns(req.cookies.dns);
             const { id } = req.params
             let { user_pw } = req.body;
+
+            let user = await selectQuerySimple(table_name, id);
+            user = user?.result[0];
+            if(!user || decode_user?.level < user?.level){
+                return response(req, res, -100, "잘못된 접근입니다.", false)
+            }
             let pw_data = await createHashedPassword(user_pw);
             user_pw = pw_data.hashedPassword;
             let user_salt = pw_data.salt;
             let obj = {
                 user_pw, user_salt
+            }
+            let result = await updateQuery(`${table_name}`, obj, id);
+            return response(req, res, 100, "success", {})
+        } catch (err) {
+            console.log(err)
+            return response(req, res, -200, "서버 에러 발생", false)
+        } finally {
+
+        }
+    },
+    changeStatus: async (req, res, next) => {
+        try {
+            let is_manager = await checkIsManagerUrl(req);
+            const decode_user = checkLevel(req.cookies.token, 0);
+            const decode_dns = checkDns(req.cookies.dns);
+            const { id } = req.params
+            let { status } = req.body;
+            let user = await selectQuerySimple(table_name, id);
+            console.log(status)
+            user = user?.result[0];
+            if(!user || decode_user?.level < user?.level){
+                return response(req, res, -100, "잘못된 접근입니다.", false)
+            }
+            let obj = {
+                status
             }
             let result = await updateQuery(`${table_name}`, obj, id);
             return response(req, res, 100, "success", {})

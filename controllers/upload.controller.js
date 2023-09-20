@@ -1,14 +1,17 @@
 'use strict';
 import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
-import { checkLevel, makeUserToken, response } from "../utils.js/util.js";
+import { checkLevel, makeUserToken, response, settingFiles } from "../utils.js/util.js";
 import 'dotenv/config';
 
 const uploadCtrl = {
     single: async (req, res, next) => {
         try {
 
-            return response(req, res, 100, "success", {});
+            let files = settingFiles(req.files);
+            return response(req, res, 100, "success", {
+                url: files?.post_img
+            });
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
@@ -18,7 +21,8 @@ const uploadCtrl = {
     },
     muiltiple: async (req, res, next) => {
         try {
-            
+            let files = req.files;
+            console.log(files)
             return response(req, res, 100, "success", []);
         } catch (err) {
             console.log(err)

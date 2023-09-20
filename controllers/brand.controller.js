@@ -42,6 +42,7 @@ const brandCtrl = {
             data = data?.result[0];
             data['theme_css'] = JSON.parse(data?.theme_css ?? '{}');
             data['setting_obj'] = JSON.parse(data?.setting_obj ?? '{}');
+            data['shop_obj'] = JSON.parse(data?.shop_obj ?? '{}');
 
             return response(req, res, 100, "success", data)
         } catch (err) {

@@ -8,7 +8,20 @@ const domainCtrl = {
     get: async (req, res, next) => {
         try {
             const { dns } = req.query;
-            let brand = await pool.query(`SELECT * FROM brands WHERE dns='${dns}'`);
+            let columns = [
+                'id',
+                'name',
+                'dns',
+                'logo_img',
+                'dark_logo_img',
+                'favicon_img',
+                'og_img',
+                'og_description',
+                'theme_css',
+                'setting_obj',
+                'is_main_dns',
+            ]
+            let brand = await pool.query(`SELECT ${columns.join()} FROM brands WHERE dns='${dns}'`);
             brand = brand?.result[0];
             brand['theme_css'] = JSON.parse(brand?.theme_css ?? '{}');
             brand['setting_obj'] = JSON.parse(brand?.setting_obj ?? '{}');
@@ -24,7 +37,7 @@ const domainCtrl = {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
-            
+
         }
     },
 }
