@@ -2,7 +2,7 @@
 import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { getMultipleQueryByWhen, getSelectQuery } from "../utils.js/query-util.js";
-import { checkDns, checkLevel, homeItemsSetting, homeItemsWithCategoriesSetting, isItemBrandIdSameDnsId, lowLevelException, makeUserToken, response } from "../utils.js/util.js";
+import { checkDns, checkLevel, homeItemsSetting, homeItemsWithCategoriesSetting, isItemBrandIdSameDnsId, lowLevelException, makeObjByList, makeUserToken, response } from "../utils.js/util.js";
 import 'dotenv/config';
 import when from 'when';
 
@@ -64,6 +64,16 @@ const shopCtrl = {
             let sql_data = await getMultipleQueryByWhen(sql_list);
             let posts = sql_data['post'] ?? [];
             let products = sql_data['product'] ?? [];
+            let item_id_list = [0];
+            item_id_list = [...item_id_list, ...products.map(item => { return item.id })];
+            let budget_data = await pool.query(`SELECT * FROM budget_products WHERE product_id IN (${item_id_list.join()}) AND user_id=${decode_user?.id ?? 0}`)
+            budget_data = budget_data?.result;
+            budget_data = makeObjByList('product_id', budget_data);
+            for (var i = 0; i < products.length; i++) {
+                let budget_item = budget_data[`${products[i]?.id}`] ?? []
+                products[i]['budget'] = budget_item[0] ?? {}
+            }
+
             for (var i = 0; i < content_list.length; i++) {
                 if (content_list[i]?.type == 'items' && products.length > 0) {
                     content_list[i] = homeItemsSetting(content_list[i], products);
@@ -118,6 +128,10 @@ const shopCtrl = {
             const { id } = req.params;
             let data = await pool.query(`SELECT * FROM products WHERE id=${id}`)
             data = data?.result[0];
+            data['product_sub_imgs'] = JSON.parse(data?.product_sub_imgs ?? "[]");
+            let budget_product = await pool.query(`SELECT * FROM budget_products WHERE user_id=${decode_user?.id ?? 0} AND product_id=${id}`);
+            budget_product = budget_product?.result[0];
+            data['budget'] = budget_product;
             if (!isItemBrandIdSameDnsId(decode_dns, data)) {
                 return lowLevelException(req, res);
             }

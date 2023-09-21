@@ -1,5 +1,5 @@
 'use strict';
-import { pool } from "../config/db.js";
+import db, { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { deleteQuery, getSelectQuery, insertQuery, selectQuerySimple, updateQuery } from "../utils.js/query-util.js";
 import { checkDns, checkLevel, isItemBrandIdSameDnsId, lowLevelException, makeObjByList, response, settingFiles } from "../utils.js/util.js";
@@ -70,11 +70,11 @@ const productCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                brand_id, name, note, price, category_id, product_sub_imgs = []
+                brand_id, name, note, price, category_id, product_sub_imgs = [], sub_name, status,
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
-                brand_id, name, note, price, category_id, product_sub_imgs
+                brand_id, name, note, price, category_id, product_sub_imgs, sub_name, status,
             };
             obj['product_sub_imgs'] = JSON.stringify(obj['product_sub_imgs']);
 
@@ -90,7 +90,6 @@ const productCtrl = {
             obj = { ...obj, ...files };
 
             let result = await insertQuery(`${table_name}`, obj);
-            console.log(result)
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
@@ -105,11 +104,11 @@ const productCtrl = {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
-                brand_id, name, note, price, category_id, id, product_sub_imgs = []
+                brand_id, name, note, price, category_id, id, product_sub_imgs = [], sub_name, status,
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
-                brand_id, name, note, price, category_id, product_sub_imgs
+                brand_id, name, note, price, category_id, product_sub_imgs, sub_name, status,
             };
             obj['product_sub_imgs'] = JSON.stringify(obj['product_sub_imgs']);
             let is_exist_category = await selectQuerySimple('product_categories', category_id);
@@ -122,12 +121,14 @@ const productCtrl = {
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
             }
             obj = { ...obj, ...files };
-
+            await db.beginTransaction();
             let result = await updateQuery(`${table_name}`, obj, id);
-
+            let result2 = await pool.query(`UPDATE budget_products SET budget_price=? WHERE product_id=${id} AND budget_price < ?  `, [price, price]);
+            await db.commit();
             return response(req, res, 100, "success", {})
         } catch (err) {
-            console.log(err)
+            console.log(err);
+            await db.rollback();
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
 

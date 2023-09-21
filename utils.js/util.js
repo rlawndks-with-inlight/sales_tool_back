@@ -83,12 +83,8 @@ export const checkDns = (token) => { //dns 정보 뿌려주기
     }
 }
 const logRequestResponse = async (req, res, decode_user, decode_dns) => {//로그찍기
-    let requestIp;
-    try {
-        requestIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '0.0.0.0'
-    } catch (err) {
-        requestIp = '0.0.0.0'
-    }
+    let requestIp = getReqIp(req);
+    
     let request = {
         url: req.originalUrl,
         headers: req.headers,
@@ -276,4 +272,14 @@ export const homeItemsWithCategoriesSetting = (column_, products) => {
         column.list[i].list = item_list;
     }
     return column;
+}
+export const getReqIp = (req) => {
+    let requestIp;
+    try {
+        requestIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip || '0.0.0.0'
+    } catch (err) {
+        requestIp = '0.0.0.0'
+    }
+    requestIp = requestIp.replaceAll('::ffff:', '');
+    return requestIp;
 }
