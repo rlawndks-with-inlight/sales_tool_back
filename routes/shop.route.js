@@ -13,5 +13,8 @@ router
 router
     .route('/product/:id')
     .get(shopCtrl.item)
-
+router
+    .route('/product')
+    .get(shopCtrl.items)
+    
 export default router;

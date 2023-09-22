@@ -20,6 +20,14 @@ const domainCtrl = {
                 'theme_css',
                 'setting_obj',
                 'is_main_dns',
+                'company_name',
+                'business_num',
+                'resident_num',
+                'ceo_name',
+                'pvcy_rep_name',
+                'addr',
+                'phone_num',
+                'fax_num',
             ]
             let brand = await pool.query(`SELECT ${columns.join()} FROM brands WHERE dns='${dns}'`);
             brand = brand?.result[0];

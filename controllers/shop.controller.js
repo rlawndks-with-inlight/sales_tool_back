@@ -113,7 +113,27 @@ const shopCtrl = {
         try {
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
-            return response(req, res, 100, "success", []);
+            const { category_id } = req.query;
+
+            let columns = [
+                `products.*`,
+                `product_categories.name AS category_name`
+            ]
+            let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM products `;
+            sql += ` LEFT JOIN product_categories ON products.category_id=product_categories.id `;
+            sql += ` WHERE products.brand_id=${decode_dns?.id} `;
+            if (category_id) sql += ` AND products.category_id=${category_id} `;
+            let data = await getSelectQuery(sql, columns, req.query);
+            let item_id_list = [0];
+            item_id_list = [...item_id_list, ...data.content.map(item => { return item.id })];
+            let budget_data = await pool.query(`SELECT * FROM budget_products WHERE product_id IN (${item_id_list.join()}) AND user_id=${decode_user?.id ?? 0}`)
+            budget_data = budget_data?.result;
+            budget_data = makeObjByList('product_id', budget_data);
+            for (var i = 0; i < data?.content.length; i++) {
+                let budget_item = budget_data[`${data?.content[i]?.id}`] ?? []
+                data.content[i]['budget'] = budget_item[0] ?? {}
+            }
+            return response(req, res, 100, "success", data);
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
