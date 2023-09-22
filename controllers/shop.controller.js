@@ -132,6 +132,28 @@ const shopCtrl = {
             let budget_product = await pool.query(`SELECT * FROM budget_products WHERE user_id=${decode_user?.id ?? 0} AND product_id=${id}`);
             budget_product = budget_product?.result[0];
             data['budget'] = budget_product;
+            let product_groups = await pool.query(`SELECT * FROM product_options WHERE product_id=${id} AND is_delete=0 ORDER BY id ASC `);
+            product_groups = product_groups?.result;
+            let groups = [];
+            let option_obj = makeObjByList('parent_id', product_groups);
+            for (var i = 0; i < product_groups.length; i++) {
+                if (product_groups[i].parent_id < 0) {
+                    option_obj[product_groups[i]?.id] = (option_obj[product_groups[i]?.id] ?? []).map(option => {
+                        return {
+                            ...option,
+                            option_name: option?.name,
+                            option_price: option?.price,
+                        }
+                    })
+                    groups.push({
+                        ...product_groups[i],
+                        group_name: product_groups[i]?.name,
+                        group_price: product_groups[i]?.price,
+                        options: option_obj[product_groups[i]?.id]
+                    })
+                }
+            }
+            data['groups'] = groups;
             if (!isItemBrandIdSameDnsId(decode_dns, data)) {
                 return lowLevelException(req, res);
             }

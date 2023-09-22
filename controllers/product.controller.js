@@ -53,6 +53,28 @@ const productCtrl = {
             let budget_product = await pool.query(`SELECT * FROM budget_products WHERE user_id=${decode_user?.id ?? 0} AND product_id=${id}`);
             budget_product = budget_product?.result[0];
             data['budget'] = budget_product;
+            let product_groups = await pool.query(`SELECT * FROM product_options WHERE product_id=${id} AND is_delete=0 ORDER BY id ASC `);
+            product_groups = product_groups?.result;
+            let groups = [];
+            let option_obj = makeObjByList('parent_id', product_groups);
+            for (var i = 0; i < product_groups.length; i++) {
+                if (product_groups[i].parent_id < 0) {
+                    option_obj[product_groups[i]?.id] = (option_obj[product_groups[i]?.id] ?? []).map(option => {
+                        return {
+                            ...option,
+                            option_name: option?.name,
+                            option_price: option?.price,
+                        }
+                    })
+                    groups.push({
+                        ...product_groups[i],
+                        group_name: product_groups[i]?.name,
+                        group_price: product_groups[i]?.price,
+                        options: option_obj[product_groups[i]?.id]
+                    })
+                }
+            }
+            data['groups'] = groups;
             if (!isItemBrandIdSameDnsId(decode_dns, data)) {
                 return lowLevelException(req, res);
             }
@@ -69,9 +91,14 @@ const productCtrl = {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
+            if (decode_user?.level < 40) {
+                return lowLevelException(req, res);
+            }
             const {
-                brand_id, name, note, price, category_id, product_sub_imgs = [], sub_name, status,
+                brand_id, name, note, price = 0, category_id, product_sub_imgs = [], sub_name, status = 0, groups = [],
             } = req.body;
+
+
             let files = settingFiles(req.files);
             let obj = {
                 brand_id, name, note, price, category_id, product_sub_imgs, sub_name, status,
@@ -88,11 +115,42 @@ const productCtrl = {
                 return response(req, res, -100, "잘못된 상품 카테고리입니다.", {})
             }
             obj = { ...obj, ...files };
-
+            await db.beginTransaction();
             let result = await insertQuery(`${table_name}`, obj);
+            let product_id = result?.result?.insertId;
+            for (var i = 0; i < groups.length; i++) {
+                let group = groups[i];
+                if (group?.is_delete != 1) {
+                    let group_result = await insertQuery(`product_options`, {
+                        product_id,
+                        brand_id,
+                        name: group?.group_name,
+                    });
+                    let group_id = group_result?.result?.insertId;
+                    let options = group?.options ?? [];
+                    let result_options = [];
+                    for (var j = 0; j < options.length; j++) {
+                        let option = options[j];
+                        if (option?.is_delete != 1) {
+                            result_options.push([
+                                product_id,
+                                brand_id,
+                                group_id,
+                                option?.option_name,
+                                option?.option_price,
+                            ])
+                        }
+                    }
+                    if (result_options.length > 0) {
+                        let option_result = await pool.query(`INSERT INTO product_options (product_id, brand_id, parent_id, name, price) VALUES ?`, [result_options]);
+                    }
+                }
+            }
+            await db.commit();
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)
+            await db.rollback();
             return response(req, res, -200, "서버 에러 발생", false)
         } finally {
 
@@ -103,8 +161,11 @@ const productCtrl = {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
+            if (decode_user?.level < 40) {
+                return lowLevelException(req, res);
+            }
             const {
-                brand_id, name, note, price, category_id, id, product_sub_imgs = [], sub_name, status,
+                brand_id, name, note, price = 0, category_id, id, product_sub_imgs = [], sub_name, status = 0, groups = []
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
@@ -123,7 +184,60 @@ const productCtrl = {
             obj = { ...obj, ...files };
             await db.beginTransaction();
             let result = await updateQuery(`${table_name}`, obj, id);
+
             let result2 = await pool.query(`UPDATE budget_products SET budget_price=? WHERE product_id=${id} AND budget_price < ?  `, [price, price]);
+            const product_id = id;
+            let insert_option_list = [];
+            let delete_option_list = [];
+            for (var i = 0; i < groups.length; i++) {
+                let group = groups[i];
+                if (group?.is_delete == 1) {
+                    delete_option_list.push(group?.id ?? 0);
+                } else {
+                    let group_result = undefined;
+                    if (group?.id) {
+                        group_result = await updateQuery(`product_options`, {
+                            name: group?.group_name,
+                        }, group?.id);
+                    } else {
+                        group_result = await insertQuery(`product_options`, {
+                            product_id,
+                            brand_id,
+                            name: group?.group_name,
+                        });
+                    }
+                    let group_id = group_result?.result?.insertId || group?.id;
+                    let options = group?.options ?? [];
+                    let result_options = [];
+                    for (var j = 0; j < options.length; j++) {
+                        let option = options[j];
+                        if (option?.is_delete == 1) {
+                            delete_option_list.push(option?.id ?? 0);
+                        } else {
+                            if (option?.id) {
+                                let option_result = await updateQuery(`product_options`, {
+                                    name: option?.option_name,
+                                    price: option?.option_price,
+                                }, option?.id);
+                            } else {
+                                insert_option_list.push([
+                                    product_id,
+                                    brand_id,
+                                    group_id,
+                                    option?.option_name,
+                                    option?.option_price,
+                                ])
+                            }
+                        }
+                    }
+                }
+            }
+            if (insert_option_list.length > 0) {
+                let option_result = await pool.query(`INSERT INTO product_options (product_id, brand_id, parent_id, name, price) VALUES ?`, [insert_option_list]);
+            }
+            if (delete_option_list.length > 0) {
+                let option_result = await pool.query(`UPDATE product_options SET is_delete=1 WHERE id IN (${delete_option_list.join()}) OR parent_id IN (${delete_option_list.join()})`);
+            }
             await db.commit();
             return response(req, res, 100, "success", {})
         } catch (err) {
