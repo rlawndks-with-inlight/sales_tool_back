@@ -44,7 +44,7 @@ const authCtrl = {
             })
             res.cookie("token", token, {
                 httpOnly: true,
-                maxAge: (60 * 60 * 1000) * 3,
+                maxAge: (60 * 60 * 1000) * 12,
                 //sameSite: 'none', 
                 //secure: true 
             });
