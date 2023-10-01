@@ -75,6 +75,16 @@ const productCtrl = {
                 }
             }
             data['groups'] = groups;
+            let product_characters = await pool.query(`SELECT * FROM product_characters WHERE product_id=${id} AND is_delete=0 ORDER BY id ASC `);
+            product_characters = product_characters?.result;
+            for (var i = 0; i < product_characters.length; i++) {
+                product_characters[i] = {
+                    ...product_characters[i],
+                    character_key: product_characters[i]?.key_name,
+                    character_value: product_characters[i]?.value,
+                }
+            }
+            data['characters'] = product_characters;
             if (!isItemBrandIdSameDnsId(decode_dns, data)) {
                 return lowLevelException(req, res);
             }
@@ -95,7 +105,7 @@ const productCtrl = {
                 return lowLevelException(req, res);
             }
             const {
-                brand_id, name, note, price = 0, category_id, product_sub_imgs = [], sub_name, status = 0, groups = [],
+                brand_id, name, note, price = 0, category_id, product_sub_imgs = [], sub_name, status = 0, groups = [], characters = [],
             } = req.body;
 
 
@@ -146,6 +156,18 @@ const productCtrl = {
                     }
                 }
             }
+            let insert_character_list = [];
+            for (var i = 0; i < characters.length; i++) {
+                insert_character_list.push([
+                    product_id,
+                    brand_id,
+                    characters[i]?.character_key,
+                    characters[i]?.character_value,
+                ])
+            }
+            if (insert_character_list.length > 0) {
+                let option_result = await pool.query(`INSERT INTO product_characters (product_id, brand_id, key_name, value) VALUES ?`, [insert_character_list]);
+            }
             await db.commit();
             return response(req, res, 100, "success", {})
         } catch (err) {
@@ -165,7 +187,7 @@ const productCtrl = {
                 return lowLevelException(req, res);
             }
             const {
-                brand_id, name, note, price = 0, category_id, id, product_sub_imgs = [], sub_name, status = 0, groups = []
+                brand_id, name, note, price = 0, category_id, id, product_sub_imgs = [], sub_name, status = 0, groups = [], characters = [],
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {
@@ -237,6 +259,34 @@ const productCtrl = {
             }
             if (delete_option_list.length > 0) {
                 let option_result = await pool.query(`UPDATE product_options SET is_delete=1 WHERE id IN (${delete_option_list.join()}) OR parent_id IN (${delete_option_list.join()})`);
+            }
+            let insert_character_list = [];
+            let delete_character_list = [];
+            for (var i = 0; i < characters.length; i++) {
+                let character = characters[i];
+                if (character?.is_delete == 1) {
+                    delete_character_list.push(character?.id ?? 0);
+                } else {
+                    if (character?.id) { // update
+                        let character_result = await updateQuery(`product_characters`, {
+                            key_name: character?.character_key,
+                            value: character?.character_value,
+                        }, character?.id);
+                    } else { // insert
+                        insert_character_list.push([
+                            product_id,
+                            brand_id,
+                            character?.character_key,
+                            character?.character_value,
+                        ])
+                    }
+                }
+            }
+            if (insert_character_list.length > 0) {
+                let option_result = await pool.query(`INSERT INTO product_characters (product_id, brand_id, key_name, value) VALUES ?`, [insert_character_list]);
+            }
+            if (delete_character_list.length > 0) {
+                let option_result = await pool.query(`UPDATE product_characters SET is_delete=1 WHERE id IN (${delete_character_list.join()}) OR parent_id IN (${delete_character_list.join()})`);
             }
             await db.commit();
             return response(req, res, 100, "success", {})

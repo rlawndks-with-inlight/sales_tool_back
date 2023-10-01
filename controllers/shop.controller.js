@@ -174,6 +174,16 @@ const shopCtrl = {
                 }
             }
             data['groups'] = groups;
+            let product_characters = await pool.query(`SELECT * FROM product_characters WHERE product_id=${id} AND is_delete=0 ORDER BY id ASC `);
+            product_characters = product_characters?.result;
+            for (var i = 0; i < product_characters.length; i++) {
+                product_characters[i] = {
+                    ...product_characters[i],
+                    character_key: product_characters[i]?.key_name,
+                    character_value: product_characters[i]?.value,
+                }
+            }
+            data['characters'] = product_characters;
             if (!isItemBrandIdSameDnsId(decode_dns, data)) {
                 return lowLevelException(req, res);
             }
