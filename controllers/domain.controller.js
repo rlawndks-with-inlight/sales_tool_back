@@ -30,6 +30,9 @@ const domainCtrl = {
                 'fax_num',
             ]
             let brand = await pool.query(`SELECT ${columns.join()} FROM brands WHERE dns='${dns}'`);
+            if(brand?.result.length == 0){
+                return response(req, res, -120, "등록된 도메인이 아닙니다.", false)
+            }
             brand = brand?.result[0];
             brand['theme_css'] = JSON.parse(brand?.theme_css ?? '{}');
             brand['setting_obj'] = JSON.parse(brand?.setting_obj ?? '{}');
