@@ -50,12 +50,13 @@ const contractCtrl = {
 
         }
     },
-    create: async (req, res, next) => {
+    create: async (req, res, next) => { //계약 생성
         try {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             const {
+                
             } = req.body;
             let files = settingFiles(req.files);
             let obj = {

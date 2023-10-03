@@ -2,7 +2,7 @@
 import { pool } from "../config/db.js";
 import { checkIsManagerUrl } from "../utils.js/function.js";
 import { deleteQuery, getSelectQuery, insertQuery, selectQuerySimple, updateQuery } from "../utils.js/query-util.js";
-import { checkDns, checkLevel, createHashedPassword, isItemBrandIdSameDnsId, lowLevelException, makeObjByList, makeUserTree, response, settingFiles } from "../utils.js/util.js";
+import { checkDns, checkLevel, createHashedPassword, isItemBrandIdSameDnsId, lowLevelException, makeObjByList, makeUserChildrenList, makeUserTree, response, settingFiles } from "../utils.js/util.js";
 import 'dotenv/config';
 
 const table_name = 'users';
@@ -13,22 +13,57 @@ const userCtrl = {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
-            const { is_sales_man } = req.query;
-            
+            const { page = 1, page_size = 100000, is_asc = false, order = 'id', s_dt, e_dt } = req.query;
+
             let columns = [
                 `${table_name}.*`,
                 'brands.name AS brand_name',
                 'parent_users.user_name AS parent_user_name',
             ]
-            let sql = `SELECT ${process.env.SELECT_COLUMN_SECRET} FROM ${table_name} `;
+            let sql = `SELECT ${columns.join()} FROM ${table_name} `;
             sql += `LEFT JOIN brands ON ${table_name}.brand_id=brands.id `;
             sql += `LEFT JOIN users AS parent_users ON ${table_name}.parent_id=parent_users.id `;
             sql += ` WHERE ${table_name}.brand_id=${decode_dns?.id} `
-            sql += ` AND ${table_name}.level=0 `;
+            sql += ` AND ${table_name}.level IN (10, 40) `; // sales-man 불러올때
+            sql += ` AND ${table_name}.is_delete=0 `;
 
-            let data = await getSelectQuery(sql, columns, req.query);
+            let user_list = await pool.query(sql);
+            user_list = user_list?.result
+            if(decode_user?.level<50){
+                user_list = makeUserChildrenList(user_list, decode_user);
+            }
+            user_list = user_list.sort(function (a, b) {
+                return a[order] - b[order];
+            });
+            if (s_dt) {
+                user_list = user_list.filter((item) => item?.created_at >= `${s_dt} 00:00:00`)
+            }
+            if (e_dt) {
+                user_list = user_list.filter((item) => item?.created_at <= `${e_dt} 23:59:59`)
+            }
+            let user_length = user_list.length;
+            return response(req, res, 100, "success", {
+                page,
+                page_size,
+                total: user_length,
+                content: user_list
+            });
+        } catch (err) {
+            console.log(err)
+            return response(req, res, -200, "서버 에러 발생", false)
+        } finally {
 
-            return response(req, res, 100, "success", data);
+        }
+    },
+    organizationalChart: async (req, res, next) => {
+        try {
+            let is_manager = await checkIsManagerUrl(req);
+            const decode_user = checkLevel(req.cookies.token, 0);
+            const decode_dns = checkDns(req.cookies.dns);
+
+            let user_list = await pool.query(`SELECT * FROM ${table_name} WHERE ${table_name}.brand_id=${decode_dns?.id} AND ${table_name}.is_delete=0 `);
+            let user_tree = makeUserTree(user_list?.result, decode_user);
+            return response(req, res, 100, "success", user_tree);
         } catch (err) {
             console.log(err)
             return response(req, res, -200, "서버 에러 발생", false)
@@ -55,22 +90,37 @@ const userCtrl = {
 
         }
     },
+    remove: async (req, res, next) => {
+        try {
+            let is_manager = await checkIsManagerUrl(req);
+            const decode_user = checkLevel(req.cookies.token, 0);
+            const decode_dns = checkDns(req.cookies.dns);
+            const { id } = req.params;
+            let result = await deleteQuery(`${table_name}`, {
+                id
+            })
+            return response(req, res, 100, "success", {})
+        } catch (err) {
+            console.log(err)
+            return response(req, res, -200, "서버 에러 발생", false)
+        } finally {
+
+        }
+    },
     create: async (req, res, next) => {
         try {
             let is_manager = await checkIsManagerUrl(req);
             const decode_user = checkLevel(req.cookies.token, 0);
             const decode_dns = checkDns(req.cookies.dns);
             let {
-                brand_id, user_name, user_pw, name, nickname, parent_user_name, level=0, phone_num, profile_img, note,
+                brand_id, user_name, user_pw, name, nickname, parent_user_name, level, phone_num, profile_img, note,
             } = req.body;
-            console.log(req.body)
             let is_exist_user = await pool.query(`SELECT * FROM ${table_name} WHERE user_name=? AND brand_id=${brand_id}`, [user_name]);
-            if(is_exist_user?.result.length > 0){
+            if (is_exist_user?.result.length > 0) {
                 return response(req, res, -100, "유저아이디가 이미 존재합니다.", false)
             }
-            let parent_id = undefined; 
+            let parent_id = await pool.query(`SELECT * FROM ${table_name} WHERE user_name=? AND brand_id=${brand_id} `, [parent_user_name]);
             if (level >= 10) {//영업자 일때
-                parent_id = await pool.query(`SELECT * FROM ${table_name} WHERE user_name=? AND brand_id=${brand_id} `, [parent_user_name]);
                 if (parent_id?.result.length > 0) {
                     parent_id = parent_id?.result[0]?.id;
                 } else {
@@ -85,7 +135,6 @@ const userCtrl = {
                 brand_id, user_name, user_pw, user_salt, name, nickname, parent_id, level, phone_num, profile_img, note
             };
             obj = { ...obj, ...files };
-            console.log(obj)
             let result = await insertQuery(`${table_name}`, obj);
 
             return response(req, res, 100, "success", {})
@@ -110,23 +159,6 @@ const userCtrl = {
             };
             obj = { ...obj, ...files };
             let result = await updateQuery(`${table_name}`, obj, id);
-            return response(req, res, 100, "success", {})
-        } catch (err) {
-            console.log(err)
-            return response(req, res, -200, "서버 에러 발생", false)
-        } finally {
-
-        }
-    },
-    remove: async (req, res, next) => {
-        try {
-            let is_manager = await checkIsManagerUrl(req);
-            const decode_user = checkLevel(req.cookies.token, 0);
-            const decode_dns = checkDns(req.cookies.dns);
-            const { id } = req.params;
-            let result = await deleteQuery(`${table_name}`, {
-                id
-            })
             return response(req, res, 100, "success", {})
         } catch (err) {
             console.log(err)

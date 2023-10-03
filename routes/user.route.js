@@ -9,10 +9,14 @@ router
     .get(userCtrl.list)
     .post(userCtrl.create)
 router
+    .route('/organizational-chart')
+    .get(userCtrl.organizationalChart)
+router
     .route('/:id')
     .get(userCtrl.get)
     .put(userCtrl.update)
     .delete(userCtrl.remove)
+
 router
     .route('/change-pw/:id')
     .put(userCtrl.changePassword)

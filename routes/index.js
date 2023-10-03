@@ -1,5 +1,5 @@
 import express from 'express';
-import userRoutes from './user.route.js';
+import customerRoutes from './customer.route.js';
 import brandRoutes from './brand.route.js';
 import authRoutes from './auth.route.js';
 import domainRoutes from './domain.route.js';
@@ -9,19 +9,20 @@ import uploadRoutes from './upload.route.js';
 import logRoutes from './log.route.js';
 import shopRoutes from './shop.route.js';
 import contractRoutes from './contract.route.js';
-import salesManRoutes from './sales_man.controller.js';
+import userRoutes from './user.route.js';
 
 const router = express.Router(); // eslint-disable-line new-cap
 
 /** GET /health-check - Check service health */
 
 // tables
-router.use('/users', userRoutes);
+router.use('/customers', customerRoutes);
 router.use('/brands', brandRoutes);
 router.use('/products', productRoutes);
 router.use('/product-categories', productCategoryRoutes);
 router.use('/logs', logRoutes);
 router.use('/contracts', contractRoutes);
+router.use('/users', userRoutes);
 
 //auth
 router.use('/auth', authRoutes);
@@ -29,7 +30,6 @@ router.use('/auth', authRoutes);
 //util
 router.use('/domain', domainRoutes);
 router.use('/upload', uploadRoutes);
-router.use('/sales-man', salesManRoutes);
 
 //user
 router.use('/shop', shopRoutes);

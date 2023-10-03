@@ -1,6 +1,6 @@
 'use strict';
 
-import userCtrl from './user.controller.js';
+import customerCtrl from './customer.controller.js';
 import brandCtrl from './brand.controller.js';
 import authCtrl from './auth.controller.js';
 import domainCtrl from './domain.controller.js';
@@ -10,10 +10,10 @@ import uploadCtrl from './upload.controller.js';
 import logCtrl from './log.controller.js';
 import shopCtrl from './shop.controller.js';
 import contractCtrl from './contract.contrller.js';
-import salesManCtrl from './sales_man.controller.js';
+import userCtrl from './user.controller.js';
 
 export {
-    userCtrl,
+    customerCtrl,
     brandCtrl,
     authCtrl,
     domainCtrl,
@@ -23,5 +23,5 @@ export {
     productCategoryCtrl,
     shopCtrl,
     contractCtrl,
-    salesManCtrl,
+    userCtrl,
 };
